@@ -1,0 +1,9 @@
+COPYRIGHT
+MANIFEST
+compress.deflatelua-0.1.0-1.rockspec
+dist.info
+util.mk
+bin/gunziplua
+module/lmod/bin/gunziplua.lua
+module/lmod/compress/deflatelua.lua
+share/compress.deflatelua/hello.txt.gz

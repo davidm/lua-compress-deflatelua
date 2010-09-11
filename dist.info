@@ -1,0 +1,17 @@
+type = [[all]]
+arch = [[Universal]]
+short = [['compress.deflatelua' DEFLATE (RFC1951)/gunzip implemented in pure Lua]]
+author = [[David Manura]]
+full = [[Note: use lzlib instead for higher performance.]]
+maintainer = [[David Manura <http://lua-users.org/wiki/DavidManura>]]
+version = [[0.1]]
+homepage = [[http://lua-users.org/wiki/ModuleCompressDeflateLua]]
+license = [[MIT]]
+name = [[compress.deflatelua]]
+dependencies = {
+	['lua'] = [[>=5.1]],
+	['digest.crc32lua'] = [[>=0.1]],
+	['pythonic.optparse'] = [[>=0.1]],
+	['bit.numberlua'] = [[>=0.1]],
+}
+
