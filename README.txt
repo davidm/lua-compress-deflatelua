@@ -26,16 +26,10 @@ Possible reasons for this module include
 === Status ===
 
 It should be robust, and no bugs are currently known.
-it successfully decompresses gzip files.
+It successfully decompresses gzip files.
 
 This module currently only decompresses.  A compressor is not
 implemented.
-
-=== Conventions ===
-
-The modules above follow a somewhat Perl CPAN-like naming convention.
-Compare to Compress::Zlib::Perl [2], Digest::CRC32 [3],
-and the Bit:: modules.
 
 === Dependencies ===
 
@@ -53,6 +47,12 @@ and the Bit:: modules.
 
 Tested on 5.1, 5.2.0-work4, and LuaJIT2 development version
 (October 2010).
+
+=== Conventions ===
+
+The modules above follow a somewhat Perl CPAN-like naming convention.
+Compare to Compress::Zlib::Perl [2], Digest::CRC32 [3],
+and the Bit:: modules.
 
 === Author ===
 
