@@ -26,6 +26,7 @@ local type = type
 local io = io
 local os = os
 local string = string
+local debug = require "debug"
 local debug_traceback = debug.traceback
 local _G = _G
 
