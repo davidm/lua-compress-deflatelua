@@ -39,6 +39,11 @@ local crc32 = require "digest.crc32lua" . crc32_byte
 
 local DEBUG = false
 
+--[[NATIVE_BITOPS
+local band = bit.band
+local lshift = bit.lshift
+local rshift = bit.rshift
+--]]
 
 local M = {}
 
@@ -198,7 +203,28 @@ local function bitstream_from_bytestream(bys)
     buf_nbit = buf_nbit - nbits
     return bits
   end
-
+  --[[NATIVE_BITOPS
+  function o:read(nbits)
+    nbits = nbits or 1
+    while buf_nbit < nbits do
+      local byte = bys:read()
+      if not byte then return end  -- note: more calls also return nil
+      buf_byte = buf_byte + lshift(byte, buf_nbit)
+      buf_nbit = buf_nbit + 8
+    end
+    local bits
+    if nbits == 32 then
+      bits = buf_byte
+      buf_byte = 0
+    else
+      bits = band(buf_byte, lshift(1, nbits) - 1)
+      buf_byte = rshift(buf_byte, nbits)
+    end
+    buf_nbit = buf_nbit - nbits
+    return bits
+  end
+  --]]
+  
   is_bitstream[o] = true
 
   return o
@@ -294,6 +320,17 @@ local function HuffmanTable(init, is_full)
     end
     return res
   end
+  --[[NATIVE_BITOPS
+  local function msb(bits, nbits)
+    local res = 0
+    for i=1,nbits do
+      res = lshift(res, 1) + band(bits, 1)
+      bits = rshift(bits, 1)
+    end
+    return res
+  end
+  --]]
+  
   local tfirstcode = memoize(
     function(bits) return pow2[minbits] + msb(bits, minbits) end)
 
@@ -307,8 +344,10 @@ local function HuffmanTable(init, is_full)
       else
         local b = noeof(bs:read())
         nbits = nbits + 1
-        --debug('b',b)
         code = code * 2 + b   -- MSB first
+        --[[NATIVE_BITOPS
+        code = lshift(code, 1) + b   -- MSB first
+        --]]
       end
       --debug('code?', code, bits_tostring(code))
       local val = look[code]
@@ -475,6 +514,9 @@ local function parse_compressed_item(bs, outstate, littable, disttable)
       for i=257,285 do
         local j = math_max(i - 261, 0)
         t[i] = (j - (j % 4)) / 4
+        --[[NATIVE_BITOPS
+        t[i] = rshift(j, 2)
+        --]]
       end
       t[285] = 0
       tdecode_len_nextrabits = t
@@ -500,6 +542,9 @@ local function parse_compressed_item(bs, outstate, littable, disttable)
       for i=0,29 do
         local j = math_max(i - 2, 0)
         t[i] = (j - (j % 2)) / 2
+        --[[NATIVE_BITOPS
+        t[i] = rshift(j, 1)
+        --]]
       end
       tdecode_dist_nextrabits = t
       --for i=0,29 do debug('T4',i,t[i]) end
