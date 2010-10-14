@@ -213,11 +213,13 @@ local function bitstream_from_bytestream(bys)
       buf_nbit = buf_nbit + 8
     end
     local bits
-    if nbits == 32 then
+    if nbits == 0 then
+      bits = 0
+    elseif nbits == 32 then
       bits = buf_byte
       buf_byte = 0
     else
-      bits = band(buf_byte, lshift(1, nbits) - 1)
+      bits = band(buf_byte, rshift(0xffffffff, 32 - nbits))
       buf_byte = rshift(buf_byte, nbits)
     end
     buf_nbit = buf_nbit - nbits
