@@ -257,7 +257,7 @@ local function get_obytestream(o)
   elseif type(o) == 'function' then
     bs = o
   else
-    error('unrecognized type: ' .. tostring(o))
+    runtime_error('unrecognized type: ' .. tostring(o))
   end
   return bs
 end
@@ -428,6 +428,35 @@ local function parse_gzip_header(bs)
   end
 end
 
+local function parse_zlib_header(bs)
+  local cm = bs:read(4) -- Compression Method
+  local cinfo = bs:read(4) -- Compression info
+  local fcheck = bs:read(5) -- FLaGs: FCHECK (check bits for CMF and FLG)
+  local fdict = bs:read(1) -- FLaGs: FDICT (present dictionary)
+  local flevel = bs:read(2) -- FLaGs: FLEVEL (compression level)
+  local cmf = cinfo * 16  + cm -- CMF (Compresion Method and flags)
+  local flg = fcheck + fdict * 32 + flevel * 64 -- FLaGs
+  
+  if cm ~= 8 then -- not "deflate"
+    runtime_error("unrecognized zlib compression method: " + cm)
+  end
+  local window_size
+  if cinfo > 7 then
+    runtime_error("invalid zlib window size: cinfo=" + cinfo)
+  end
+  local window_size = 2^(cinfo + 8)
+  
+  if (cmf*256 + flg) %  31 ~= 0 then
+    runtime_error("invalid zlib header (bad fcheck sum)")
+  end
+  
+  if fdict == 1 then
+    runtime_error("FIX:TODO - FDICT not currently implemented")
+    local dictid = bs:read(32)
+  end
+  
+  return window_size
+end
 
 local function parse_huffmantables(bs)
     local hlit = bs:read(5)  -- # of literal/length codes - 257
@@ -622,7 +651,7 @@ local function deflate(t)
 end
 M.deflate = deflate
 
-
+-- http://tools.ietf.org/html/rfc1952
 local function gunzip(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
@@ -643,14 +672,14 @@ local function gunzip(t)
 
   bs:read(bs:nbits_left_in_byte())
 
-  local crc32 = bs:read(32)
+  local expected_crc32 = bs:read(32)
   local isize = bs:read(32) -- ignored
   if DEBUG then
-    debug('crc32=', crc32)
+    debug('crc32=', expected_crc32)
     debug('isize=', isize)
   end
   if not disable_crc and data_crc32 then
-    if data_crc32 ~= crc32 then
+    if data_crc32 ~= expected_crc32 then
       runtime_error('invalid compressed data--crc error')
     end    
   end
@@ -660,6 +689,55 @@ local function gunzip(t)
 end
 M.gunzip = gunzip
 
+-- adler32 checksum
+-- see ADLER32 in http://tools.ietf.org/html/rfc1950 .
+local function adler32(byte, crc)
+  local s1 = crc % 65536
+  local s2 = (crc - s1) / 65536
+  s1 = (s1 + byte) % 65521
+  s2 = (s2 + s1) % 65521
+  return s2*65536 + s1
+end -- 65521 is the largest prime smaller than 2^16
+
+-- http://tools.ietf.org/html/rfc1950
+local function inflate_zlib(t)
+  local bs = get_bitstream(t.input)
+  local outbs = get_obytestream(t.output)
+  local disable_crc = t.disable_crc
+  if disable_crc == nil then disable_crc = false end
+  
+  local window_size = parse_zlib_header(bs)
+  
+  local data_adler32 = 1
+  
+  deflate{input=bs, output=
+    disable_crc and outbs or
+      function(byte)
+        data_adler32 = adler32(byte, data_adler32)
+        outbs(byte)
+      end
+  }
+
+  bs:read(bs:nbits_left_in_byte())
+  
+  local b3 = bs:read(8)
+  local b2 = bs:read(8)
+  local b1 = bs:read(8)
+  local b0 = bs:read(8)
+  local expected_adler32 = ((b3*256 + b2)*256 + b1)*256 + b0
+  if DEBUG then
+    debug('alder32=', expected_adler32)
+  end
+  if not disable_crc then
+    if data_adler32 ~= expected_adler32 then
+      runtime_error('invalid compressed data--crc error')
+    end    
+  end
+  if bs:read() then
+    warn 'trailing garbage ignored'
+  end
+end
+M.inflate_zlib = inflate_zlib
 
 return M
 

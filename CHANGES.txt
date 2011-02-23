@@ -1,0 +1,5 @@
+2011-02-22
+	Added zlib header support (RFC1950)
+
+2008
+	Initial version

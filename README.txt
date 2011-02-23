@@ -1,7 +1,7 @@
 === Description ===
 
-compress.deflatelua is Lua module implementing DEFLATE [1] and
-gzip/zlib decompression in pure Lua.
+compress.deflatelua is Lua module implementing DEFLATE [5,1], as well as
+zlib [4] and gzip [6] decompression in pure Lua.
 
 === Example / Performance ===
 
@@ -63,3 +63,6 @@ David Manura.  See COPYRIGHT file.
 [1] http://en.wikipedia.org/wiki/DEFLATE
 [2] http://search.cpan.org/~nwclark/Compress-Zlib-Perl/Perl.pm
 [3] http://search.cpan.org/~fays/Digest-Crc32/Crc32.pm
+[4] http://tools.ietf.org/html/rfc1950
+[5] http://tools.ietf.org/html/rfc1951
+[6] http://tools.ietf.org/html/rfc1952
