@@ -1,7 +1,7 @@
 package = "compress.deflatelua"
-version = "0.1.0-1"
+version = "$(_VERSION)"
 source = {
-   url = "http://math2.org/download/lua-compress-deflatelua-0.1.tar.gz",
+   url = "http://math2.org/download/lua-compress-deflatelua-FIX.tar.gz",
 }
 description = {
    summary    = "'compress.deflatelua' DEFLATE (RFC1951)/gunzip implemented in pure Lua",
@@ -18,8 +18,8 @@ build = {
   type = "none",
   install = {
      lua = {
-        ["compress.deflatelua"] = "module/lmod/compress/deflatelua.lua",
-        ["bin.gunziplua"] = "module/lmod/bin/gunziplua.lua",
+        ["compress.deflatelua"] = "lmod/compress/deflatelua.lua",
+        ["bin.gunziplua"] = "lmod/bin/gunziplua.lua",
      },
      bin = {
         ["gunziplua"] = "bin/gunziplua"
