@@ -1,7 +1,7 @@
 package = "compress.deflatelua"
 version = "$(_VERSION)"
 source = {
-   url = "http://math2.org/download/lua-compress-deflatelua-FIX.tar.gz",
+   url = "https://github.com/davidm/lua-compress-deflatelua/zipball/v$(_VERSION)",
 }
 description = {
    summary    = "'compress.deflatelua' DEFLATE (RFC1951)/gunzip implemented in pure Lua",
@@ -10,6 +10,7 @@ description = {
    ]],
    license    =  "MIT/X11",
    homepage   = "http://lua-users.org/wiki/ModuleCompressDeflateLua",
+       -- https://github.com/davidm/lua-compress-deflatelua
    maintainer = "David Manura <http://lua-users.org/wiki/DavidManura>",
 }
 dependencies = {
