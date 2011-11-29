@@ -1,22 +1,26 @@
--- dmlib.deflate
--- deflate (and gunzip) implemented in Lua.
---
--- Note: only supports decompression.
--- Compression not implemented.
---
--- References
--- [1] DEFLATE Compressed Data Format Specification version 1.3
---     http://tools.ietf.org/html/rfc1951
--- [2] GZIP file format specification version 4.3
---     http://tools.ietf.org/html/rfc1952
--- [3] http://en.wikipedia.org/wiki/DEFLATE
--- [4] pyflate, by Paul Sladen
---     http://www.paul.sladen.org/projects/pyflate/
--- [5] Compress::Zlib::Perl - partial pure Perl implementation of
---     Compress::Zlib
---     http://search.cpan.org/~nwclark/Compress-Zlib-Perl/Perl.pm
---
--- (c) 2008 David Manura.  Licensed under the same terms as Lua (MIT).
+--[[
+ compress.deflatelua
+ deflate (and gunzip) implemented in Lua.
+
+ Note: only supports decompression.
+ Compression not implemented.
+
+ References
+ [1] DEFLATE Compressed Data Format Specification version 1.3
+     http://tools.ietf.org/html/rfc1951
+ [2] GZIP file format specification version 4.3
+     http://tools.ietf.org/html/rfc1952
+ [3] http://en.wikipedia.org/wiki/DEFLATE
+ [4] pyflate, by Paul Sladen
+     http://www.paul.sladen.org/projects/pyflate/
+ [5] Compress::Zlib::Perl - partial pure Perl implementation of
+     Compress::Zlib
+     http://search.cpan.org/~nwclark/Compress-Zlib-Perl/Perl.pm
+
+ (c) 2008-2011 David Manura.  Licensed under the same terms as Lua (MIT).
+--]]
+
+local M = {_TYPE='module', _NAME='compress.deflatelua', _VERSION='000.003.2011-11-28'}
 
 local assert = assert
 local error = error
@@ -32,20 +36,39 @@ local math = math
 local table_sort = table.sort
 local math_max = math.max
 local string_char = string.char
-local io_open = io.open
-local _G = _G
+
+--[[
+ Requires the first module listed that exists, else raises like `require`.
+ If a non-string is encountered, it is returned.
+ Second return value is module name loaded (or '').
+ --]]
+local function requireany(...)
+  local errs = {}
+  for i = 1, select('#', ...) do local name = select(i, ...)
+    if type(name) ~= 'string' then return name, '' end
+    local ok, mod = pcall(require, name)
+    if ok then return mod, name end
+    errs[#errs+1] = mod
+  end
+  error(table.concat(errs, '\n'), 2)
+end
+
 
 local crc32 = require "digest.crc32lua" . crc32_byte
+local bit, name_ = requireany('bit', 'bit32', 'bit.numberlua', nil)
 
 local DEBUG = false
 
---[[NATIVE_BITOPS
-local band = bit.band
-local lshift = bit.lshift
-local rshift = bit.rshift
---]]
+-- Whether to use `bit` library functions in current module.
+-- Unlike the crc32 library, it doesn't make much difference in this module.
+local NATIVE_BITOPS = (bit ~= nil)
 
-local M = {}
+local band, lshift, rshift
+if NATIVE_BITOPS then
+  band = bit.band
+  lshift = bit.lshift
+  rshift = bit.rshift
+end
 
 
 local function warn(s)
@@ -119,6 +142,7 @@ local is_bitstream = setmetatable({}, {__mode='k'})
 
 -- DEBUG
 -- prints LSB first
+--[[
 local function bits_tostring(bits, nbits)
   local s = ''
   local tmp = bits
@@ -135,7 +159,7 @@ local function bits_tostring(bits, nbits)
 
   return s
 end
-
+--]]
 
 local function bytestream_from_file(fh)
   local o = {}
@@ -179,7 +203,6 @@ local function bytestream_from_function(f)
 end
 
 
-local left
 local function bitstream_from_bytestream(bys)
   local buf_byte = 0
   local buf_nbit = 0
@@ -189,43 +212,44 @@ local function bitstream_from_bytestream(bys)
     return buf_nbit
   end
 
-  function o:read(nbits)
-    nbits = nbits or 1
-    while buf_nbit < nbits do
-      local byte = bys:read()
-      if not byte then return end  -- note: more calls also return nil
-      buf_byte = buf_byte + pow2[buf_nbit] * byte
-      buf_nbit = buf_nbit + 8
+  if NATIVE_BITOPS then
+    function o:read(nbits)
+      nbits = nbits or 1
+      while buf_nbit < nbits do
+        local byte = bys:read()
+        if not byte then return end  -- note: more calls also return nil
+        buf_byte = buf_byte + lshift(byte, buf_nbit)
+        buf_nbit = buf_nbit + 8
+      end
+      local bits
+      if nbits == 0 then
+        bits = 0
+      elseif nbits == 32 then
+        bits = buf_byte
+        buf_byte = 0
+      else
+        bits = band(buf_byte, rshift(0xffffffff, 32 - nbits))
+        buf_byte = rshift(buf_byte, nbits)
+      end
+      buf_nbit = buf_nbit - nbits
+      return bits
     end
-    local m = pow2[nbits]
-    local bits = buf_byte % m
-    buf_byte = (buf_byte - bits) / m
-    buf_nbit = buf_nbit - nbits
-    return bits
+  else
+    function o:read(nbits)
+      nbits = nbits or 1
+      while buf_nbit < nbits do
+        local byte = bys:read()
+        if not byte then return end  -- note: more calls also return nil
+        buf_byte = buf_byte + pow2[buf_nbit] * byte
+        buf_nbit = buf_nbit + 8
+      end
+      local m = pow2[nbits]
+      local bits = buf_byte % m
+      buf_byte = (buf_byte - bits) / m
+      buf_nbit = buf_nbit - nbits
+      return bits
+    end
   end
-  --[[NATIVE_BITOPS
-  function o:read(nbits)
-    nbits = nbits or 1
-    while buf_nbit < nbits do
-      local byte = bys:read()
-      if not byte then return end  -- note: more calls also return nil
-      buf_byte = buf_byte + lshift(byte, buf_nbit)
-      buf_nbit = buf_nbit + 8
-    end
-    local bits
-    if nbits == 0 then
-      bits = 0
-    elseif nbits == 32 then
-      bits = buf_byte
-      buf_byte = 0
-    else
-      bits = band(buf_byte, rshift(0xffffffff, 32 - nbits))
-      buf_byte = rshift(buf_byte, nbits)
-    end
-    buf_nbit = buf_nbit - nbits
-    return bits
-  end
-  --]]
   
   is_bitstream[o] = true
 
@@ -313,7 +337,14 @@ local function HuffmanTable(init, is_full)
 
   -- function t:lookup(bits) return look[bits] end
 
-  local function msb(bits, nbits)
+  local msb = NATIVE_BITOPS and function(bits, nbits)
+    local res = 0
+    for i=1,nbits do
+      res = lshift(res, 1) + band(bits, 1)
+      bits = rshift(bits, 1)
+    end
+    return res
+  end or function(bits, nbits)
     local res = 0
     for i=1,nbits do
       local b = bits % 2
@@ -322,16 +353,6 @@ local function HuffmanTable(init, is_full)
     end
     return res
   end
-  --[[NATIVE_BITOPS
-  local function msb(bits, nbits)
-    local res = 0
-    for i=1,nbits do
-      res = lshift(res, 1) + band(bits, 1)
-      bits = rshift(bits, 1)
-    end
-    return res
-  end
-  --]]
   
   local tfirstcode = memoize(
     function(bits) return pow2[minbits] + msb(bits, minbits) end)
@@ -440,7 +461,6 @@ local function parse_zlib_header(bs)
   if cm ~= 8 then -- not "deflate"
     runtime_error("unrecognized zlib compression method: " + cm)
   end
-  local window_size
   if cinfo > 7 then
     runtime_error("invalid zlib window size: cinfo=" + cinfo)
   end
@@ -452,7 +472,7 @@ local function parse_zlib_header(bs)
   
   if fdict == 1 then
     runtime_error("FIX:TODO - FDICT not currently implemented")
-    local dictid = bs:read(32)
+    local dictid_ = bs:read(32)
   end
   
   return window_size
@@ -542,12 +562,16 @@ local function parse_compressed_item(bs, outstate, littable, disttable)
     end
     if not tdecode_len_nextrabits then
       local t = {}
-      for i=257,285 do
-        local j = math_max(i - 261, 0)
-        t[i] = (j - (j % 4)) / 4
-        --[[NATIVE_BITOPS
-        t[i] = rshift(j, 2)
-        --]]
+      if NATIVE_BITOPS then
+        for i=257,285 do
+          local j = math_max(i - 261, 0)
+          t[i] = rshift(j, 2)
+        end
+      else
+        for i=257,285 do
+          local j = math_max(i - 261, 0)
+          t[i] = (j - (j % 4)) / 4
+        end
       end
       t[285] = 0
       tdecode_len_nextrabits = t
@@ -570,12 +594,16 @@ local function parse_compressed_item(bs, outstate, littable, disttable)
     end
     if not tdecode_dist_nextrabits then
       local t = {}
-      for i=0,29 do
-        local j = math_max(i - 2, 0)
-        t[i] = (j - (j % 2)) / 2
-        --[[NATIVE_BITOPS
-        t[i] = rshift(j, 1)
-        --]]
+      if NATIVE_BITOPS then
+        for i=0,29 do
+          local j = math_max(i - 2, 0)
+          t[i] = rshift(j, 1)
+        end
+      else
+        for i=0,29 do
+          local j = math_max(i - 2, 0)
+          t[i] = (j - (j % 2)) / 2
+        end
       end
       tdecode_dist_nextrabits = t
       --for i=0,29 do debug('T4',i,t[i]) end
@@ -603,7 +631,7 @@ local function parse_block(bs, outstate)
   local BTYPE_NO_COMPRESSION = 0
   local BTYPE_FIXED_HUFFMAN = 1
   local BTYPE_DYNAMIC_HUFFMAN = 2
-  local BTYPE_RESERVED = 3
+  local BTYPE_RESERVED_ = 3
 
   if DEBUG then
     debug('bfinal=', bfinal)
@@ -613,7 +641,7 @@ local function parse_block(bs, outstate)
   if btype == BTYPE_NO_COMPRESSION then
     bs:read(bs:nbits_left_in_byte())
     local len = bs:read(16)
-    local nlen = noeof(bs:read(16))
+    local nlen_ = noeof(bs:read(16))
 
     for i=1,len do
       local by = noeof(bs:read(8))
@@ -706,7 +734,7 @@ local function inflate_zlib(t)
   local disable_crc = t.disable_crc
   if disable_crc == nil then disable_crc = false end
   
-  local window_size = parse_zlib_header(bs)
+  local window_size_ = parse_zlib_header(bs)
   
   local data_adler32 = 1
   
@@ -744,7 +772,7 @@ return M
 --[[
 LICENSE
 
-Copyright (C) 2008, David Manura.
+Copyright (C) 2008-2011, David Manura.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
