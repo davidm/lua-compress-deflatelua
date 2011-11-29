@@ -1,44 +1,122 @@
 --[[
- compress.deflatelua
- deflate (and gunzip) implemented in Lua.
 
- Note: only supports decompression.
- Compression not implemented.
+LUA MODULE
 
- References
- [1] DEFLATE Compressed Data Format Specification version 1.3
-     http://tools.ietf.org/html/rfc1951
- [2] GZIP file format specification version 4.3
-     http://tools.ietf.org/html/rfc1952
- [3] http://en.wikipedia.org/wiki/DEFLATE
- [4] pyflate, by Paul Sladen
-     http://www.paul.sladen.org/projects/pyflate/
- [5] Compress::Zlib::Perl - partial pure Perl implementation of
-     Compress::Zlib
-     http://search.cpan.org/~nwclark/Compress-Zlib-Perl/Perl.pm
+  compress.deflatelua - deflate (and gunzip/zlib) implemented in Lua.
 
- LICENSE
+SYNOPSIS
+  
+  local DEFLATE = require 'compress.deflatelua'
+  -- uncompress gzip file
+  local fh = assert(io.open'foo.txt.gz', 'rb')
+  local ofh = assert(io.open'foo.txt', 'wb')
+  DEFLATE.gunzip {input=fh, output=ofh}
+  fh:close(); ofh:close()
+  -- can also uncompress from string including zlib and raw DEFLATE formats.
+  
+DESCRIPTION
+  
+  This is a pure Lua implementation of decompressing the DEFLATE format,
+  including the related zlib and gzip formats.
+  
+  Note: This library only supports decompression.
+  Compression is not currently implemented.
 
- (c) 2008-2011 David Manura.  Licensed under the same terms as Lua (MIT).
+API
 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+  Note: in the following functions, input stream `fh` may be
+  a file handle, string, or an iterator function that returns strings.
+  Output stream `ofh` may be a file handle or a function that
+  consumes one byte (number 0..255) per call.
 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+  DEFLATE.deflate {input=fh, output=ofh}
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- (end license)
+    Decompresses input stream `fh` in the DEFLATE format
+    while writing to output stream `ofh`.
+    DEFLATE is detailed in http://tools.ietf.org/html/rfc1951 .
+  
+  DEFLATE.gunzip {input=fh, output=ofh, disable_crc=disable_crc}
+  
+    Decompresses input stream `fh` with the gzip format
+    while writing to output stream `ofh`.
+    `disable_crc` (defaults to `false`) will disable CRC-32 checking
+    to increase speed.
+    gzip is defailed in http://tools.ietf.org/html/rfc1952 .
+
+  DEFLATE.inflate_zlib {input=fh, output=ofh, disable_crc=disable_crc}
+  
+    Decompresses input stream `fh` with the zlib format
+    while writing to output stream `ofh`.
+    `disable_crc` (defaults to `false`) will disable CRC-32 checking
+    to increase speed.
+    zlib is detailed in http://tools.ietf.org/html/rfc1950 .  
+
+  DEFLATE.adler32(byte, crc) --> rcrc
+  
+    Returns adler32 checksum of byte `byte` (number 0..255) appended
+    to string with adler32 checksum `crc`.  This is internally used by
+    `inflate_zlib`.
+    ADLER32 in detailed in http://tools.ietf.org/html/rfc1950 .
+
+COMMAND LINE UTILITY
+
+  A `gunziplua` command line utility (in folder `bin`) is also provided.
+  This mimicks the *nix `gunzip` utility but is a pure Lua implementation
+  that invokes this library.  For help do
+  
+    gunziplua -h
+    
+DEPENDENCIES
+
+  Requires 'digest.crc32lua' (used for optional CRC-32 checksum checks).
+    https://github.com/davidm/lua-digest-crc32lua
+
+  Will use a bit library ('bit', 'bit32', 'bit.numberlua') if available.  This
+  is not that critical for this library but is required by digest.crc32lua.
+
+  'pythonic.optparse' is only required by the optional `gunziplua`
+  command-line utilty for command line parsing.  
+    https://github.com/davidm/lua-pythonic-optparse
+
+INSTALLATION
+
+  Copy the `compress` directory into your LUA_PATH.
+    
+REFERENCES
+
+  [1] DEFLATE Compressed Data Format Specification version 1.3
+      http://tools.ietf.org/html/rfc1951
+  [2] GZIP file format specification version 4.3
+      http://tools.ietf.org/html/rfc1952
+  [3] http://en.wikipedia.org/wiki/DEFLATE
+  [4] pyflate, by Paul Sladen
+      http://www.paul.sladen.org/projects/pyflate/
+  [5] Compress::Zlib::Perl - partial pure Perl implementation of
+      Compress::Zlib
+      http://search.cpan.org/~nwclark/Compress-Zlib-Perl/Perl.pm
+
+LICENSE
+
+  (c) 2008-2011 David Manura.  Licensed under the same terms as Lua (MIT).
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  THE SOFTWARE.
+  (end license)
 --]]
 
 local M = {_TYPE='module', _NAME='compress.deflatelua', _VERSION='000.003.2011-11-28'}
@@ -701,7 +779,6 @@ end
 local deflate = M.deflate
 
 
--- http://tools.ietf.org/html/rfc1952
 function M.gunzip(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
@@ -739,8 +816,6 @@ function M.gunzip(t)
 end
 
 
--- adler32 checksum
--- see ADLER32 in http://tools.ietf.org/html/rfc1950 .
 function M.adler32(byte, crc)
   local s1 = crc % 65536
   local s2 = (crc - s1) / 65536
@@ -749,7 +824,7 @@ function M.adler32(byte, crc)
   return s2*65536 + s1
 end -- 65521 is the largest prime smaller than 2^16
 
--- http://tools.ietf.org/html/rfc1950
+
 function M.inflate_zlib(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
