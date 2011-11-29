@@ -119,7 +119,7 @@ LICENSE
   (end license)
 --]]
 
-local M = {_TYPE='module', _NAME='compress.deflatelua', _VERSION='000.003.2011-11-28'}
+local M = {_TYPE='module', _NAME='compress.deflatelua', _VERSION='0.3.20111128'}
 
 local assert = assert
 local error = error

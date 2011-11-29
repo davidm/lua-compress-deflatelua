@@ -1,7 +1,7 @@
-COPYRIGHT
+COPYRIGHT.txt
 MANIFEST
 CHANGES.txt
-compress.deflatelua-0.1.0-1.rockspec
+rockspec.in
 dist.info
 util.mk
 bin/gunziplua

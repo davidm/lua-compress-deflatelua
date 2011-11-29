@@ -1,9 +1,9 @@
 -- tests of lua-compress-deflatelua
 
-package.path = '../../lua-digest-crc32lua/lmod/?.lua;' .. package.path
-package.path = '../../lua-pythonic-optparse/lmod/?.lua;' .. package.path
-package.path = '../../lua-bit-numberlua/lmod/?.lua;' .. package.path
-package.path = '../lmod/?.lua;' .. package.path
+package.path = '../lua-digest-crc32lua/lmod/?.lua;' .. package.path
+package.path = '../lua-pythonic-optparse/lmod/?.lua;' .. package.path
+package.path = '../lua-bit-numberlua/lmod/?.lua;' .. package.path
+package.path = 'lmod/?.lua;' .. package.path
 
 deflate = require("compress.deflatelua")
 

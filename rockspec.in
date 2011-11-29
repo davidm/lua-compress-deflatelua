@@ -1,7 +1,9 @@
-package = "compress.deflatelua"
+package = "lua-compress-deflatelua"
 version = "$(_VERSION)"
 source = {
-   url = "https://github.com/davidm/lua-compress-deflatelua/zipball/v$(_VERSION)",
+   --url = "https://github.com/davidm/lua-compress-deflatelua/zipball/v$(_VERSION)",
+   url = "git://github.com/davidm/lua-compress-deflatelua.git",
+   branch='$(_VERSION)'
 }
 description = {
    summary    = "'compress.deflatelua' DEFLATE (RFC1951)/gunzip implemented in pure Lua",
@@ -14,6 +16,14 @@ description = {
    maintainer = "David Manura <http://lua-users.org/wiki/DavidManura>",
 }
 dependencies = {
+  "lua >= 5.1",  -- including 5.2
+  "lua-digest-crc32lua >= 0.3", -- somewhat optional
+  --"lua-pythonic-optparse >= 0.3", -- optional  
+  -- one of these bitwise operator libraries:
+  "lua-bit-numberlua >= 0.3",  -- fallback
+  --"LuaBitOp",  -- included in LuaJIT
+  --"Lua >= 5.2", -- included 'bit32'
+  --"bit32", -- included in Lua 5.2
 }
 build = {
   type = "none",
@@ -27,4 +37,4 @@ build = {
      }
   }
 }
-
+-- _VERSION from lmod/compress/deflatelua.lua
