@@ -1,3 +1,7 @@
+2011-11-28
+	Renamed DEFLATE.deflate to DEFLATE.inflate (breaks API).
+	Expanded docs.
+
 2011-02-22
 	Added zlib header support (RFC1950)
 

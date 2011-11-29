@@ -29,7 +29,7 @@ API
   Output stream `ofh` may be a file handle or a function that
   consumes one byte (number 0..255) per call.
 
-  DEFLATE.deflate {input=fh, output=ofh}
+  DEFLATE.inflate {input=fh, output=ofh}
 
     Decompresses input stream `fh` in the DEFLATE format
     while writing to output stream `ofh`.
@@ -41,7 +41,7 @@ API
     while writing to output stream `ofh`.
     `disable_crc` (defaults to `false`) will disable CRC-32 checking
     to increase speed.
-    gzip is defailed in http://tools.ietf.org/html/rfc1952 .
+    gzip is detailed in http://tools.ietf.org/html/rfc1952 .
 
   DEFLATE.inflate_zlib {input=fh, output=ofh, disable_crc=disable_crc}
   
@@ -767,7 +767,7 @@ local function parse_block(bs, outstate)
 end
 
 
-function M.deflate(t)
+function M.inflate(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
   local outstate = make_outstate(outbs)
@@ -776,7 +776,7 @@ function M.deflate(t)
     local is_final = parse_block(bs, outstate)
   until is_final
 end
-local deflate = M.deflate
+local inflate = M.inflate
 
 
 function M.gunzip(t)
@@ -789,7 +789,7 @@ function M.gunzip(t)
 
   local data_crc32 = 0
 
-  deflate{input=bs, output=
+  inflate{input=bs, output=
     disable_crc and outbs or
       function(byte)
         data_crc32 = crc32(byte, data_crc32)
@@ -835,7 +835,7 @@ function M.inflate_zlib(t)
   
   local data_adler32 = 1
   
-  deflate{input=bs, output=
+  inflate{input=bs, output=
     disable_crc and outbs or
       function(byte)
         data_adler32 = M.adler32(byte, data_adler32)

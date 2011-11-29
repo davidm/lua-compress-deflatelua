@@ -1,21 +1,23 @@
--- bin.gunzip
--- gunzip command partially reimplemented in Lua.
---
--- Note: this does not implement all of the GNU
--- gunzip[1] command-line options and might have
--- slightly different behavior.
---
--- This is designed to be called from a shell script:
---
---   #!/bin/env lua
---   package.path = '?.lua;' .. package.path
---   require 'dmlib.command_gunzip' (...)
---
--- References
---
---   [1] http://www.gnu.org/software/gzip/
---
--- (c) 2008 David Manura.  Licensed under the same terms as Lua (MIT).
+--[[
+ bin.gunzip
+ gunzip command partially reimplemented in Lua.
+
+ Note: this does not implement all of the GNU
+ gunzip[1] command-line options and might have
+ slightly different behavior.
+
+ This is designed to be called from a shell script:
+
+   #!/bin/env lua
+   package.path = '?.lua;' .. package.path
+   require 'dmlib.command_gunzip' (...)
+
+ References
+
+   [1] http://www.gnu.org/software/gzip/
+
+(c) 2008-2011 David Manura.  Licensed under the same terms as Lua (MIT).
+--]]
 
 local assert = assert
 local error = error
