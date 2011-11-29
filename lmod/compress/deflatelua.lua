@@ -689,7 +689,7 @@ local function parse_block(bs, outstate)
 end
 
 
-local function deflate(t)
+function M.deflate(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
   local outstate = make_outstate(outbs)
@@ -698,10 +698,11 @@ local function deflate(t)
     local is_final = parse_block(bs, outstate)
   until is_final
 end
-M.deflate = deflate
+local deflate = M.deflate
+
 
 -- http://tools.ietf.org/html/rfc1952
-local function gunzip(t)
+function M.gunzip(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
   local disable_crc = t.disable_crc
@@ -736,11 +737,11 @@ local function gunzip(t)
     warn 'trailing garbage ignored'
   end
 end
-M.gunzip = gunzip
+
 
 -- adler32 checksum
 -- see ADLER32 in http://tools.ietf.org/html/rfc1950 .
-local function adler32(byte, crc)
+function M.adler32(byte, crc)
   local s1 = crc % 65536
   local s2 = (crc - s1) / 65536
   s1 = (s1 + byte) % 65521
@@ -749,7 +750,7 @@ local function adler32(byte, crc)
 end -- 65521 is the largest prime smaller than 2^16
 
 -- http://tools.ietf.org/html/rfc1950
-local function inflate_zlib(t)
+function M.inflate_zlib(t)
   local bs = get_bitstream(t.input)
   local outbs = get_obytestream(t.output)
   local disable_crc = t.disable_crc
@@ -762,7 +763,7 @@ local function inflate_zlib(t)
   deflate{input=bs, output=
     disable_crc and outbs or
       function(byte)
-        data_adler32 = adler32(byte, data_adler32)
+        data_adler32 = M.adler32(byte, data_adler32)
         outbs(byte)
       end
   }
@@ -786,6 +787,6 @@ local function inflate_zlib(t)
     warn 'trailing garbage ignored'
   end
 end
-M.inflate_zlib = inflate_zlib
+
 
 return M
