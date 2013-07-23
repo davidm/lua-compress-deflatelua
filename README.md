@@ -39,8 +39,7 @@ Dependencies
 
 * [digest.crc32lua] - CRC-32 checksum implemented in pure Lua
 * [bit.numberlua] - bitwise operations implemented in pure Lua as numbers
-  (note: if using a native bitwise operation library, you can replace
-  `bxor` as appropriate in `digest.crc32lua` and omit this library)
+  (not required if using a native bitwise operation library)
 * [pythonic.optparse] - command-line processing resembling the Python
   optparse module
 
