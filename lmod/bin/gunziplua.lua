@@ -122,8 +122,10 @@ local function call(...)
         disable_crc=options.disable_crc}
     end
 
-    for _,gzipfile in ipairs(gzipfiles) do
-      assert(os.remove(gzipfile))
+    if not options.stdout then
+      for _,gzipfile in ipairs(gzipfiles) do
+        assert(os.remove(gzipfile))
+      end
     end
 
   end, debug_traceback)
